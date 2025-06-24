@@ -112,16 +112,60 @@ Install dependencies:
 pip install -r requirements.txt
 ```
 
+### Environment Setup
+
+The project uses environment variables for configuration. You can set them up in two ways:
+
+#### Option 1: Automatic Setup (Recommended)
+Run the setup script to create your `.env` file:
+```bash
+python setup_env.py
+```
+
+This will prompt you for your OpenAI API key and create a `.env` file with all necessary configuration.
+
+#### Option 2: Manual Setup
+Create a `.env` file in the project root with the following content:
+```bash
+# OpenAI API Configuration
+OPENAI_API_KEY=your_openai_api_key_here
+
+# LLM Provider Settings
+LLM_PROVIDER=openai
+DEEP_THINK_LLM=gpt-4o
+QUICK_THINK_LLM=gpt-4o
+BACKEND_URL=https://api.openai.com/v1
+
+# Debate and Discussion Settings
+MAX_DEBATE_ROUNDS=1
+MAX_RISK_DISCUSS_ROUNDS=1
+MAX_RECUR_LIMIT=100
+
+# Tool Settings
+ONLINE_TOOLS=true
+
+# Data Settings
+DATA_DIR=/Users/yluo/Documents/Code/ScAI/FR1-data
+```
+
+**Important**: Replace `your_openai_api_key_here` with your actual OpenAI API key.
+
+#### Verify Environment Setup
+Check if your environment is configured correctly:
+```bash
+python setup_env.py check
+```
+
 ### Required APIs
 
 You will also need the FinnHub API for financial data. All of our code is implemented with the free tier.
 ```bash
-export FINNHUB_API_KEY=$YOUR_FINNHUB_API_KEY
+export FINNHUB_API_KEY="d1bkmr9r01qsbpudktsgd1bkmr9r01qsbpudktt0"
 ```
 
 You will need the OpenAI API for all the agents.
 ```bash
-export OPENAI_API_KEY=$YOUR_OPENAI_API_KEY
+export OPENAI_API_KEY="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"
 ```
 
 ### CLI Usage
@@ -175,8 +219,8 @@ from tradingagents.default_config import DEFAULT_CONFIG
 
 # Create a custom config
 config = DEFAULT_CONFIG.copy()
-config["deep_think_llm"] = "gpt-4.1-nano"  # Use a different model
-config["quick_think_llm"] = "gpt-4.1-nano"  # Use a different model
+config["deep_think_llm"] = "gpt-4o"  # Use a different model
+config["quick_think_llm"] = "gpt-4o"  # Use a different model
 config["max_debate_rounds"] = 1  # Increase debate rounds
 config["online_tools"] = True # Use online tools or cached data
 
@@ -211,3 +255,176 @@ Please reference our work if you find *TradingAgents* provides you with some hel
       url={https://arxiv.org/abs/2412.20138}, 
 }
 ```
+
+## Token Usage Optimization
+
+The system has been optimized to reduce OpenAI API token consumption:
+
+- **Reduced Debate Rounds**: `MAX_DEBATE_ROUNDS=1` and `MAX_RISK_DISCUSS_ROUNDS=1`
+- **Limited Analysts**: Only uses "market" and "fundamentals" analysts by default
+- **Reduced Recursion**: `MAX_RECUR_LIMIT=50` (down from 100)
+- **Streamlined Tools**: Only essential tools for market and fundamental analysis
+
+These optimizations help stay within OpenAI's 16k token limit while maintaining analysis quality.
+
+## Quick Start
+
+### 1. Environment Setup
+
+Run the setup script to configure your environment:
+
+```bash
+python setup_env.py
+```
+
+This will guide you through creating a `.env` file with your API keys and settings.
+
+### 2. Install Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### 3. Basic Usage
+
+```python
+from tradingagents.graph.trading_graph import TradingAgentsGraph
+
+# Create graph instance (uses token-optimized defaults)
+graph = TradingAgentsGraph()
+
+# Run analysis
+result = graph.propagate("AAPL", "2024-01-15")
+print(result)
+```
+
+## Configuration
+
+### Environment Variables
+
+Create a `.env` file with your settings:
+
+```bash
+# LLM Provider (openai, anthropic, google)
+LLM_PROVIDER=openai
+
+# OpenAI Configuration
+OPENAI_API_KEY=your_openai_api_key_here
+DEEP_THINK_LLM=gpt-4o
+QUICK_THINK_LLM=gpt-4o
+BACKEND_URL=https://api.openai.com/v1
+
+# Token Usage Optimization Settings
+MAX_DEBATE_ROUNDS=1
+MAX_RISK_DISCUSS_ROUNDS=1
+MAX_RECUR_LIMIT=50
+
+# Data and Tool Settings
+DATA_DIR=/path/to/your/data/directory
+ONLINE_TOOLS=true
+```
+
+### Custom Configuration
+
+```python
+config = {
+    "llm_provider": "openai",
+    "deep_think_llm": "gpt-4o",
+    "quick_think_llm": "gpt-4o",
+    "max_debate_rounds": 1,  # Token optimization
+    "max_risk_discuss_rounds": 1,  # Token optimization
+    "max_recur_limit": 50,  # Token optimization
+}
+
+graph = TradingAgentsGraph(config)
+```
+
+## API Usage
+
+### FastAPI Server
+
+Start the FastAPI server:
+
+```bash
+python app.py
+```
+
+### API Endpoints
+
+- `POST /trade`: Submit trading analysis request
+- `GET /health`: Health check endpoint
+
+Example request:
+
+```bash
+curl -X POST "http://localhost:8000/trade" \
+     -H "Content-Type: application/json" \
+     -d '{"ticker": "AAPL", "date": "2024-01-15"}'
+```
+
+## CLI Usage
+
+Run the command-line interface:
+
+```bash
+python cli/main.py
+```
+
+Available commands:
+- `init`: Initialize the trading system
+- `analyze <ticker> <date>`: Run analysis for a specific stock
+- `news`: Get latest market news
+- `technical`: Get technical analysis
+
+## Architecture
+
+### Agent Types
+
+1. **Researchers**: Bull and Bear researchers analyze market sentiment
+2. **Analysts**: Market, fundamentals, news, and social media analysts
+3. **Risk Managers**: Conservative, neutral, and aggressive risk debaters
+4. **Trader**: Final decision maker based on all analyses
+
+### Data Flow
+
+1. **Data Collection**: Market data, fundamentals, news, social sentiment
+2. **Analysis**: Multi-agent analysis and debate
+3. **Risk Assessment**: Multi-level risk evaluation
+4. **Decision Making**: Final trading recommendation
+
+## Development
+
+### Project Structure
+
+```
+tradingagents/
+├── agents/           # Agent implementations
+├── dataflows/        # Data collection and processing
+├── graph/           # Graph execution logic
+└── default_config.py # Default configuration
+```
+
+### Testing
+
+Run the test suite:
+
+```bash
+python test_trading_agents_graph.py
+python test_env_setup.py
+```
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests
+5. Submit a pull request
+
+## Support
+
+For issues and questions, please check the documentation or create an issue in the repository.
