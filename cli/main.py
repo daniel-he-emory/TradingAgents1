@@ -17,6 +17,22 @@ from rich.tree import Tree
 from rich import box
 from rich.align import Align
 from rich.rule import Rule
+import os
+from pathlib import Path
+
+# Load environment variables from .env file
+from dotenv import load_dotenv
+
+# Get the project root directory (parent of cli directory)
+project_root = Path(__file__).parent.parent
+env_path = project_root / '.env'
+
+# Load .env file if it exists
+if env_path.exists():
+    load_dotenv(env_path)
+else:
+    # Fallback to current directory if .env not found in project root
+    load_dotenv()
 
 from tradingagents.graph.trading_graph import TradingAgentsGraph
 from tradingagents.default_config import DEFAULT_CONFIG
@@ -338,7 +354,10 @@ def update_display(layout, spinner_text=None):
 
     # Add a footer to indicate if messages were truncated
     if len(all_messages) > max_messages:
-        messages_table.footer = (
+        # Note: Table doesn't have a footer attribute, so we'll add a row instead
+        messages_table.add_row(
+            "", 
+            "", 
             f"[dim]Showing last {max_messages} of {len(all_messages)} messages[/dim]"
         )
 
@@ -1044,7 +1063,82 @@ def run_analysis():
         # Display the complete final report
         display_complete_report(final_state)
 
+        # Save final decision to file
+        save_final_decision_to_file(selections["ticker"], selections["analysis_date"], final_state, decision)
+
         update_display(layout)
+
+
+def save_final_decision_to_file(ticker, analysis_date, final_state, decision):
+    """Save the final decision and complete report to a file."""
+    filename = f"report_{ticker}_{analysis_date}.txt"
+    
+    # Create the report content
+    report_content = []
+    report_content.append(f"TradingAgents Analysis Report")
+    report_content.append(f"Ticker: {ticker}")
+    report_content.append(f"Analysis Date: {analysis_date}")
+    report_content.append(f"Generated: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    report_content.append("=" * 80)
+    report_content.append("")
+    
+    # Add the complete final report
+    if message_buffer.final_report:
+        report_content.append(message_buffer.final_report)
+    else:
+        # Fallback: construct report from final_state
+        if final_state.get("market_report"):
+            report_content.append("## Market Analysis")
+            report_content.append(final_state["market_report"])
+            report_content.append("")
+        
+        if final_state.get("sentiment_report"):
+            report_content.append("## Social Sentiment")
+            report_content.append(final_state["sentiment_report"])
+            report_content.append("")
+        
+        if final_state.get("news_report"):
+            report_content.append("## News Analysis")
+            report_content.append(final_state["news_report"])
+            report_content.append("")
+        
+        if final_state.get("fundamentals_report"):
+            report_content.append("## Fundamentals Analysis")
+            report_content.append(final_state["fundamentals_report"])
+            report_content.append("")
+        
+        if final_state.get("investment_debate_state"):
+            debate_state = final_state["investment_debate_state"]
+            if debate_state.get("judge_decision"):
+                report_content.append("## Research Team Decision")
+                report_content.append(debate_state["judge_decision"])
+                report_content.append("")
+        
+        if final_state.get("trader_investment_plan"):
+            report_content.append("## Trading Team Plan")
+            report_content.append(final_state["trader_investment_plan"])
+            report_content.append("")
+        
+        if final_state.get("risk_debate_state"):
+            risk_state = final_state["risk_debate_state"]
+            if risk_state.get("judge_decision"):
+                report_content.append("## Portfolio Management Decision")
+                report_content.append(risk_state["judge_decision"])
+                report_content.append("")
+    
+    # Add the final decision
+    report_content.append("=" * 80)
+    report_content.append("FINAL DECISION")
+    report_content.append("=" * 80)
+    report_content.append(str(decision))
+    
+    # Write to file
+    try:
+        with open(filename, 'w', encoding='utf-8') as f:
+            f.write('\n'.join(report_content))
+        console.print(f"[green]Report saved to: {filename}[/green]")
+    except Exception as e:
+        console.print(f"[red]Error saving report to {filename}: {e}[/red]")
 
 
 @app.command()

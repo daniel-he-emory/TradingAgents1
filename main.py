@@ -1,3 +1,7 @@
+# Load environment variables from .env file
+from dotenv import load_dotenv
+load_dotenv()
+
 from tradingagents.graph.trading_graph import TradingAgentsGraph
 from tradingagents.default_config import DEFAULT_CONFIG
 
@@ -11,11 +15,11 @@ config["max_debate_rounds"] = 1  # Increase debate rounds
 config["online_tools"] = True  # Increase debate rounds
 
 # Initialize with custom config
-ta = TradingAgentsGraph(debug=True, config=config)
+ta = TradingAgentsGraph(config=config)
 
-# forward propagate
-_, decision = ta.propagate("NVDA", "2024-05-10")
-print(decision)
+# forward propagate - new interface returns only the result
+result = ta.propagate("NVDA", "2024-05-10")
+print(result.get("final_trade_decision", "No decision made"))
 
 # Memorize mistakes and reflect
 # ta.reflect_and_remember(1000) # parameter is the position returns
