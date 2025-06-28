@@ -46,7 +46,7 @@ def fetch_trade(ticker, trade_date, deep_think_model=None, debate_rounds=None, t
             params["debate_rounds"] = debate_rounds
         
         resp = httpx.get(
-            "http://127.0.0.1:8000/trade",
+            "https://tradingagents1.onrender.com/trade",
             params=params,
             timeout=timeout
         )
